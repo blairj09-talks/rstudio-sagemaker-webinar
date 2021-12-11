@@ -22,6 +22,7 @@ library(tidyverse)
 
 # Python packages ----
 sagemaker <- import("sagemaker")
+class(sagemaker)
 ```
 
 ## Creating and Accessing the Data Storage
@@ -479,9 +480,32 @@ consumers can invoke by a secure and simple API call using an HTTPS request.
 Let’s deploy our trained model to a ml.t2.medium instance. This will take a
 couple of minutes.
 
+First, we'll setup model monitoring following the outline provided
+[here](https://docs.aws.amazon.com/sagemaker/latest/dg/model-monitor-data-capture.html)
+```{r}
+# Setup S3 bucket
+prefix <- 'sagemaker/DEMO-ModelMonitor'
+data_capture_prefix = glue::glue('{prefix}/datacapture')
+s3_capture_upload_path = glue::glue('s3://{bucket}/{data_capture_prefix}')
+```
+
+
+```{r}
+data_capture_config <- sagemaker$model_monitor$DataCaptureConfig(
+  enable_capture = TRUE,
+  sampling_percentage = 100L,
+  destination_s3_uri = s3_capture_upload_path
+)
+```
+
+
+
 ```{r}
 model_endpoint <- tuner$deploy(initial_instance_count = 1L,
-                                   instance_type = 'ml.t2.medium')
+                               instance_type = 'ml.t2.medium',
+                               endpoint_name = "Sample-XGB-Endpoint",
+                               model_name = "Sample-XGB-Model",
+                               data_capture_config = data_capture_config)
 ```
 
 ### Generating Predictions with the Deployed Model
